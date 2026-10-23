@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Random UFC 6 matchup generator: pick men's or WMMA, a weight class and a star range.">
+<title>UFC 6 Match Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Saira:ital,wght@1,800;1,900&display=swap">
+<style>
+/* Layout: home = cage-side setup card; fight = full-screen split, red corner left / blue corner right, flags behind */
+:root {
+  --ink: #0b0b0e;
+  --canvas: #15151a;
+  --panel: #1b1b21;
+  --line: rgba(255, 255, 255, 0.09);
+  --bone: #f4efe6;
+  --mute: #9d98a3;
+  --red: #e3121b;
+  --red-deep: #8f0b11;
+  --blue: #2a5bd7;
+  --gold: #e9b949;
+  --gold-deep: #9c6d14;
+  --font: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Saira", "Outfit", "Arial Black", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+body {
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font);
+  font-size: 16px;
+}
+button { font-family: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+kbd {
+  font-family: inherit; font-size: 0.62em; font-weight: 700; letter-spacing: 0.04em;
+  border: 1.5px solid currentColor; border-radius: 4px; padding: 1px 6px; opacity: 0.75;
+}
+
+/* ---------- Chain-link texture, shared ---------- */
+.mesh-bg {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 1.5px, transparent 1.5px 22px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0 1.5px, transparent 1.5px 22px);
+}
+
+/* ---------- HOME ---------- */
+#home {
+  min-height: 100%;
+  padding-block: 40px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(227, 18, 27, 0.28), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 100% 10%, rgba(42, 91, 215, 0.22), transparent 70%),
+    var(--ink);
+  position: relative;
+}
+#home::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+}
+.wrap { max-width: 1080px; margin: 0 auto; position: relative; display: grid; gap: 28px; }
+.hero { display: grid; justify-items: center; text-align: center; gap: 6px; }
+.logo {
+  font-family: var(--display); font-style: italic; font-weight: 900; margin: 0;
+  font-size: clamp(84px, 15vw, 176px); line-height: 0.82; letter-spacing: -0.03em; color: #fff;
+  text-shadow: 0 6px 0 rgba(0,0,0,0.35);
+}
+.logo span { color: var(--red); margin-left: 0.06em; }
+.sub {
+  margin: 0; font-family: var(--display); font-style: italic; font-weight: 800;
+  font-size: clamp(16px, 2.2vw, 24px); letter-spacing: 0.34em; text-transform: uppercase; color: var(--bone);
+  display: flex; align-items: center; gap: 0.8em;
+}
+.sub::before, .sub::after { content: ""; width: clamp(24px, 6vw, 70px); height: 2px; background: var(--red); }
+.hero-art {
+  position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 4%;
+  aspect-ratio: 5 / 3; width: min(460px, 100%); margin-top: 18px;
+  background: radial-gradient(ellipse 55% 14% at 50% 92%, rgba(0,0,0,0.6), transparent 70%);
+}
+.hero-art::before {
+  content: ""; position: absolute; inset: 6% 4% 8%;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  border: 0; background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0 1.5px, transparent 1.5px 16px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.07) 0 1.5px, transparent 1.5px 16px),
+    linear-gradient(#222229, #121216);
+}
+.hero-art canvas { position: relative; height: 82%; image-rendering: pixelated; filter: drop-shadow(0 8px 0 rgba(0,0,0,0.35)); }
+.hero-art canvas:last-of-type { transform: scaleX(-1); }
+
+.card {
+  background: linear-gradient(180deg, var(--panel), var(--canvas));
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--red);
+  padding: 28px clamp(16px, 3vw, 32px);
+  display: grid; gap: 26px;
+}
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 12px; }
+legend {
+  padding: 0; margin-bottom: 12px; font-weight: 800; font-size: 13px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold); display: flex; gap: 10px; align-items: baseline;
+}
+legend small { color: var(--mute); letter-spacing: 0.06em; font-weight: 500; text-transform: none; font-size: 13px; }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 520px; }
+.seg button, .chip {
+  --cut: 12px;
+  border: 0; cursor: pointer; text-align: left; position: relative;
+  background: #1f1f25; color: var(--mute);
+  clip-path: polygon(var(--cut) 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
+  transition: background .15s, color .15s;
+}
+.seg button { padding: 14px 26px; font-family: var(--display); font-style: italic; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.01em; }
+.seg button:hover, .chip:hover { background: #2a2a31; color: var(--bone); }
+.seg button[aria-checked="true"], .chip[aria-checked="true"] {
+  background: linear-gradient(180deg, #2c1416, #1f1f25 80%); color: #fff;
+}
+.seg button::after, .chip::after {
+  content: ""; position: absolute; left: var(--cut); right: 0; bottom: 0; height: 3px; background: transparent;
+}
+.seg button[aria-checked="true"]::after, .chip[aria-checked="true"]::after { background: var(--red); }
+
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(165px, 100%), 1fr)); gap: 8px; }
+.chip { padding: 10px 22px 12px 22px; display: flex; flex-direction: column; gap: 2px; }
+.chip .n { font-family: var(--display); font-style: italic; font-weight: 900; font-size: 30px; line-height: 1; color: #4f4b56; font-variant-numeric: tabular-nums; }
+.chip .t { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; }
+.chip[aria-checked="true"] .n { color: var(--red); }
+
+/* Star range (min / max) */
+.range { display: grid; gap: 10px; max-width: 560px; }
+.rrow { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; }
+.rrow > b { font-weight: 800; font-size: 15px; letter-spacing: 0.1em; }
+.picker { display: flex; gap: 6px; cursor: pointer; border-radius: 2px; touch-action: manipulation; }
+.picker .cell { width: 54px; height: 54px; display: grid; place-items: center; background: rgba(255,255,255,0.035); font-size: 44px; }
+.val {
+  min-width: 70px; text-align: center; padding: 8px 10px; background: #26262d; border: 1px solid var(--line);
+  font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums;
+}
+.go {
+  display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center;
+  border-top: 1px dashed var(--line); padding-top: 22px;
+}
+.go p { margin: 0; color: var(--mute); font-variant-numeric: tabular-nums; line-height: 1.5; min-width: 0; }
+.go p b { color: var(--bone); }
+.go p.warn b { color: #ff7a72; }
+
+.fine { color: #6e6973; font-size: 13px; line-height: 1.5; margin: 0; max-width: 70ch; }
+
+/* ---------- Stars ---------- */
+.stars { display: inline-flex; gap: 0.16em; }
+.fstar { width: 1em; height: 1em; position: relative; display: block; flex: none; }
+.fstar svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fstar .on { clip-path: inset(-20% calc(100% - var(--fill, 100%)) -20% -20%); filter: drop-shadow(0 0 0.12em rgba(255, 196, 60, 0.45)); }
+.fstar .off { filter: drop-shadow(0 0.04em 0.05em rgba(0,0,0,0.5)); }
+
+/* ---------- Slanted buttons (both screens) ---------- */
+.btn {
+  --cut: 16px;
+  --edge: rgba(255,255,255,0.55);
+  --fill: #17171c;
+  position: relative; border: 0; cursor: pointer; background: var(--edge);
+  clip-path: polygon(var(--cut) 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
+  padding: 18px 40px; display: inline-flex; align-items: center; gap: 14px;
+  font-size: 22px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #fff;
+  transition: transform .12s ease;
+}
+.btn::before {
+  content: ""; position: absolute; inset: 2.5px; background: var(--fill);
+  clip-path: polygon(calc(var(--cut) - 1px) 0, 100% 0, calc(100% - var(--cut) + 1px) 100%, 0 100%);
+}
+.btn > * { position: relative; }
+.btn svg { width: 1em; height: 1em; flex: none; }
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+.btn-fight {
+  --edge: var(--gold);
+  --fill: repeating-linear-gradient(-55deg, rgba(255,255,255,0.07) 0 8px, transparent 8px 20px), linear-gradient(180deg, #ff2a2f, #b80d14);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+}
+.btn-back {
+  --fill: repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 1.5px, transparent 1.5px 10px),
+          repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 1.5px, transparent 1.5px 10px),
+          linear-gradient(180deg, #24242b, #0d0d10);
+}
+
+/* ---------- FIGHT SCREEN ---------- */
+#fight { position: fixed; inset: 0; overflow: hidden; background: #0c0c10; z-index: 5; }
+.half { position: absolute; inset: 0; }
+.half.L { clip-path: polygon(0 0, 54% 0, 46% 100%, 0 100%); background: linear-gradient(135deg, #1a0b0d, #0c0c10 70%); }
+.half.R { clip-path: polygon(54% 0, 100% 0, 100% 100%, 46% 100%); background: linear-gradient(225deg, #0b0f1c, #0c0c10 70%); }
+.flag { position: absolute; top: 0; bottom: 0; width: 54%; opacity: 0.34; filter: saturate(1.15); }
+.half.L .flag { left: 0; }
+.half.R .flag { right: 0; }
+.flag svg { width: 100%; height: 100%; display: block; }
+.half::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 55% at var(--gx, 25%) 42%, transparent 0%, rgba(0,0,0,0.35) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.25), transparent 30%, transparent 60%, rgba(0,0,0,0.55));
+}
+.half.R::after { --gx: 75%; }
+#fight .mesh { position: absolute; inset: 0; pointer-events: none; }
+.split { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 10px rgba(255,255,255,0.45)); }
+.split line { stroke: #fff; stroke-width: 4; vector-effect: non-scaling-stroke; }
+.split .m { display: none; }
+
+.side {
+  position: absolute; top: 0; bottom: 0; width: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2vh 3vw 15vh; text-align: center; gap: 0;
+}
+.side.L { left: 0; }
+.side.R { right: 0; }
+.side::before {
+  content: ""; position: absolute; left: 50%; top: 40%; width: 60vh; height: 60vh; translate: -50% -50%;
+  background: radial-gradient(circle, var(--glow, #fff) 0%, transparent 62%); opacity: 0.32; pointer-events: none;
+}
+.abbr {
+  position: absolute; top: max(2.5vh, env(safe-area-inset-top, 0px)); font-weight: 900; letter-spacing: -0.02em;
+  font-size: clamp(56px, 8.5vw, 132px); line-height: 1; color: rgba(255,255,255,0.16);
+}
+.side.L .abbr { left: max(2.6vw, env(safe-area-inset-left, 0px)); }
+.side.R .abbr { right: max(2.6vw, env(safe-area-inset-right, 0px)); }
+.corner-tag {
+  position: absolute; top: calc(max(2.5vh, env(safe-area-inset-top, 0px)) + clamp(58px, 8.8vw, 136px));
+  font-size: 12px; font-weight: 800; letter-spacing: 0.24em; text-transform: uppercase;
+  padding: 4px 10px; color: #fff;
+}
+.side.L .corner-tag { left: max(2.8vw, env(safe-area-inset-left, 0px)); background: var(--red); }
+.side.R .corner-tag { right: max(2.8vw, env(safe-area-inset-right, 0px)); background: var(--blue); }
+
+.stage { position: relative; height: clamp(170px, 38vh, 380px); aspect-ratio: 32 / 48; max-width: 100%; margin-bottom: 3.2vh; }
+.stage canvas { width: 100%; height: 100%; image-rendering: pixelated; position: relative; display: block;
+  filter: drop-shadow(0 0 0.5px #000) drop-shadow(10px 14px 0 rgba(0,0,0,0.28)); }
+.side.R .stage canvas { transform: scaleX(-1); }
+.stage::after {
+  content: ""; position: absolute; left: 8%; right: 8%; bottom: -2%; height: 5%;
+  background: rgba(0,0,0,0.45); border-radius: 50%; z-index: -1;
+}
+.division {
+  position: relative; font-size: clamp(12px, 1.15vw, 17px); font-weight: 700; letter-spacing: 0.24em;
+  text-transform: uppercase; color: rgba(255,255,255,0.78); margin-bottom: 0.4em;
+}
+.side h2 {
+  position: relative; margin: 0; font-size: clamp(30px, 4.3vw, 72px); font-weight: 800; line-height: 0.98;
+  letter-spacing: -0.025em; text-transform: uppercase; text-wrap: balance; max-width: 92%;
+  text-shadow: 0 4px 18px rgba(0,0,0,0.45);
+}
+.side .stars { position: relative; font-size: clamp(24px, 2.3vw, 38px); margin-top: 0.55em; }
+
+/* VS */
+.vs {
+  position: absolute; left: 50%; top: 47%; translate: -50% -50%;
+  width: clamp(110px, 11vw, 170px); aspect-ratio: 1; display: grid; place-items: center; z-index: 2;
+}
+.burst {
+  position: absolute; inset: -38%;
+  background: radial-gradient(circle, #ffd25a 0%, #ff4d1f 38%, #c3060d 62%, transparent 63%);
+  opacity: 0.9; animation: spin 18s linear infinite;
+}
+.burst.b2 { inset: -26%; background: radial-gradient(circle, #fff3c4 0%, #ffb02e 55%, transparent 56%); opacity: 0.55; animation-duration: 26s; animation-direction: reverse; }
+.oct, .oct-in { clip-path: polygon(29.3% 0, 70.7% 0, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0 70.7%, 0 29.3%); }
+.oct {
+  position: relative; width: 100%; height: 100%; padding: 6%;
+  background: linear-gradient(145deg, #fff1b8, var(--gold) 30%, var(--gold-deep) 70%, #f3d27a);
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.6));
+}
+.oct-in {
+  width: 100%; height: 100%; display: grid; place-items: center; position: relative; overflow: hidden;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 1.5px, transparent 1.5px 9px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 1.5px, transparent 1.5px 9px),
+    radial-gradient(circle at 50% 30%, #2b2b33, #050507 75%);
+}
+.oct-in::before {
+  content: ""; position: absolute; left: -20%; right: -20%; top: 46%; height: 14%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+  transform: rotate(-24deg); opacity: 0.35;
+}
+.oct-in span {
+  position: relative; font-size: clamp(44px, 4.6vw, 74px); font-weight: 900; letter-spacing: -0.04em;
+  color: #fff; transform: skewX(-10deg); line-height: 1;
+  text-shadow: -3px 0 0 var(--blue), 3px 0 0 var(--red), 0 4px 0 rgba(0,0,0,0.6);
+}
+@keyframes spin { to { rotate: 360deg; } }
+
+/* Actions */
+.actions {
+  position: absolute; left: 0; right: 0; z-index: 3;
+  bottom: calc(5vh + env(safe-area-inset-bottom, 0px));
+  display: flex; justify-content: center; gap: 22px; flex-wrap: wrap;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Entrance */
+#fight.in .side.L .stage { animation: inL .55s cubic-bezier(.2,.9,.25,1.2) both; }
+#fight.in .side.R .stage { animation: inR .55s cubic-bezier(.2,.9,.25,1.2) both; }
+#fight.in .side h2, #fight.in .division, #fight.in .side .stars { animation: up .45s .15s ease-out both; }
+#fight.in .vs { animation: slam .5s .25s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes inL { from { transform: translateX(-60%); opacity: 0; } }
+@keyframes inR { from { transform: translateX(60%); opacity: 0; } }
+@keyframes up { from { transform: translateY(14px); opacity: 0; } }
+@keyframes slam { from { scale: 2.6; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 760px) {
+  .picker .cell { width: 38px; height: 38px; font-size: 30px; }
+  .picker { gap: 3px; }
+  .rrow { grid-template-columns: 40px 1fr auto; gap: 8px; }
+  .val { min-width: 54px; font-size: 19px; padding: 6px; }
+  .btn { font-size: 17px; padding: 14px 26px; gap: 10px; --cut: 12px; }
+
+  .half.L { clip-path: polygon(0 0, 100% 0, 100% 46%, 0 54%); }
+  .half.R { clip-path: polygon(0 54%, 100% 46%, 100% 100%, 0 100%); }
+  .flag { width: 100%; height: 54%; bottom: auto; }
+  .half.R .flag { top: 46%; }
+  .split .d { display: none; }
+  .split .m { display: inline; }
+  .side { width: 100%; padding: 0 16px; }
+  .side.L { top: 0; bottom: 50%; padding-top: 6vh; padding-bottom: 5vh; }
+  .side.R { top: 50%; bottom: 0; padding-top: 6vh; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .side.R .abbr { top: 5vh; }
+  .corner-tag { display: none; }
+  .side::before { width: 40vh; height: 40vh; }
+  .stage { height: clamp(100px, 19vh, 190px); margin-bottom: 1.4vh; }
+  .side h2 { font-size: clamp(24px, 7.5vw, 40px); }
+  .division { font-size: 11px; }
+  .side .stars { font-size: 20px; }
+  .vs { top: 50%; width: 88px; }
+  .oct-in span { font-size: 36px; }
+  .actions { gap: 10px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .actions kbd { display: none; }
+}
+</style>
+</head>
+<body>
+<main id="home" class="mesh-bg">
+  <div class="wrap">
+    <header class="hero">
+      <h1 class="logo">UFC<span>6</span></h1>
+      <p class="sub">Match Generator</p>
+      <div class="hero-art" aria-hidden="true">
+        <canvas id="heroL" width="32" height="48"></canvas>
+        <canvas id="heroR" width="32" height="48"></canvas>
+      </div>
+    </header>
+
+    <form id="setup" class="card">
+      <fieldset>
+        <legend>Roster</legend>
+        <div class="seg" role="radiogroup" aria-label="Roster">
+          <button type="button" role="radio" id="g-M" data-g="M">Men's</button>
+          <button type="button" role="radio" id="g-W" data-g="W">WMMA</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Weight class</legend>
+        <div id="divChips" class="chips" role="radiogroup" aria-label="Weight class"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Star rating</legend>
+        <div class="range">
+          <div class="rrow"><b id="minLbl">MIN</b><div class="picker" id="pickMin" role="slider" tabindex="0" aria-labelledby="minLbl" aria-valuemin="0.5" aria-valuemax="5"></div><div class="val" id="valMin"></div></div>
+          <div class="rrow"><b id="maxLbl">MAX</b><div class="picker" id="pickMax" role="slider" tabindex="0" aria-labelledby="maxLbl" aria-valuemin="0.5" aria-valuemax="5"></div><div class="val" id="valMax"></div></div>
+        </div>
+      </fieldset>
+
+      <div class="go">
+        <p id="poolInfo" aria-live="polite"></p>
+        <button type="submit" id="goBtn" class="btn btn-fight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+          <span>Generate fight</span><kbd>Enter</kbd>
+        </button>
+      </div>
+    </form>
+
+    <p class="fine">Fan-made tool, not affiliated with EA Sports or the UFC. Star ratings are estimates; edit the ROSTER list in the page source to match the game.</p>
+  </div>
+</main>
+
+<section id="fight" hidden aria-label="Matchup">
+  <div class="half L"><div class="flag" id="flagL"></div></div>
+  <div class="half R"><div class="flag" id="flagR"></div></div>
+  <div class="mesh mesh-bg"></div>
+  <svg class="split" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <line class="d" x1="54" y1="0" x2="46" y2="100"/>
+    <line class="m" x1="0" y1="54" x2="100" y2="46"/>
+  </svg>
+
+  <div class="side L" id="sideL">
+    <div class="abbr" id="abbrL"></div>
+    <div class="corner-tag">Red corner</div>
+    <div class="stage"><canvas id="spriteL" width="32" height="48"></canvas></div>
+    <div class="division" id="divL"></div>
+    <h2 id="nameL"></h2>
+    <div class="stars" id="starsL"></div>
+  </div>
+  <div class="side R" id="sideR">
+    <div class="abbr" id="abbrR"></div>
+    <div class="corner-tag">Blue corner</div>
+    <div class="stage"><canvas id="spriteR" width="32" height="48"></canvas></div>
+    <div class="division" id="divR"></div>
+    <h2 id="nameR"></h2>
+    <div class="stars" id="starsR"></div>
+  </div>
+
+  <div class="vs" aria-label="versus">
+    <div class="burst"></div><div class="burst b2"></div>
+    <div class="oct"><div class="oct-in"><span>VS</span></div></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn-back" id="backBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 5l-7 7 7 7"/></svg>
+      <span>Back</span><kbd>Esc</kbd>
+    </button>
+    <button type="button" class="btn btn-fight" id="regenBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6.3"/><path d="M20 4v7h-7"/></svg>
+      <span>Regenerate</span><kbd>R</kbd>
+    </button>
+  </div>
+</section>
+
+<script>
+/* ===== ROSTER =====
+   gender | division | name | country | stars | skin (0 light – 4 dark) | hair (b bald, s short, c curly, l long, p ponytail) | hair colour (k black, n brown, y blond, r red, g grey) | beard (1/0) */
+const ROSTER_TEXT = `
+M|FLY|Alexandre Pantoja|BRA|4.5|2|s|k|0
+M|FLY|Joshua Van|MMR|4.5|2|s|k|0
+M|FLY|Demetrious Johnson|USA|5|4|b|k|0
+M|FLY|Brandon Moreno|MEX|4|2|s|k|0
+M|FLY|Kai Kara-France|NZL|4|3|s|k|0
+M|FLY|Brandon Royval|USA|4|1|s|n|1
+M|FLY|Tatsuro Taira|JPN|4|1|s|k|0
+M|FLY|Tim Elliott|USA|3|0|s|n|1
+M|BW|Merab Dvalishvili|GEO|5|1|b|k|1
+M|BW|Petr Yan|RUS|4.5|1|s|k|0
+M|BW|Umar Nurmagomedov|RUS|4.5|2|s|k|1
+M|BW|Sean O'Malley|USA|4.5|0|s|r|0
+M|BW|Cory Sandhagen|USA|4|1|s|n|0
+M|BW|Henry Cejudo|USA|4|2|s|k|0
+M|BW|Song Yadong|CHN|4|1|s|k|0
+M|BW|Deiveson Figueiredo|BRA|3.5|3|s|k|1
+M|BW|Marlon Vera|ECU|3.5|2|s|k|1
+M|FW|Alexander Volkanovski|AUS|5|1|s|n|0
+M|FW|Jose Aldo|BRA|4.5|2|s|k|0
+M|FW|Movsar Evloev|RUS|4.5|1|s|k|1
+M|FW|Diego Lopes|BRA|4.5|2|s|k|1
+M|FW|Max Holloway|USA|4.5|3|s|k|1
+M|FW|Yair Rodriguez|MEX|4|2|s|k|0
+M|FW|Brian Ortega|USA|4|2|l|k|1
+M|FW|Arnold Allen|ENG|4|0|s|n|1
+M|FW|Aljamain Sterling|USA|4|4|l|k|1
+M|FW|Dan Ige|USA|3.5|2|s|k|1
+M|LW|Ilia Topuria|ESP|5|1|s|k|1
+M|LW|Khabib Nurmagomedov|RUS|5|1|s|k|1
+M|LW|Charles Oliveira|BRA|4.5|2|s|k|0
+M|LW|Arman Tsarukyan|ARM|4.5|1|s|k|1
+M|LW|Justin Gaethje|USA|4.5|0|s|n|0
+M|LW|Dustin Poirier|USA|4.5|1|s|n|1
+M|LW|Conor McGregor|IRL|4.5|0|s|r|1
+M|LW|Paddy Pimblett|ENG|4|0|s|y|0
+M|LW|Mateusz Gamrot|POL|4|0|s|n|0
+M|LW|Dan Hooker|NZL|4|1|s|n|1
+M|LW|Benoit Saint Denis|FRA|4|0|s|n|1
+M|LW|Michael Chandler|USA|3.5|0|s|n|0
+M|WW|Islam Makhachev|RUS|5|1|s|k|1
+M|WW|Georges St-Pierre|CAN|5|0|s|n|0
+M|WW|Jack Della Maddalena|AUS|4.5|0|s|n|0
+M|WW|Belal Muhammad|USA|4.5|2|s|k|1
+M|WW|Shavkat Rakhmonov|KAZ|4.5|2|s|k|1
+M|WW|Leon Edwards|ENG|4.5|4|s|k|1
+M|WW|Kamaru Usman|NGA|4.5|4|b|k|1
+M|WW|Sean Brady|USA|4|0|s|n|1
+M|WW|Ian Machado Garry|IRL|4|1|s|n|0
+M|WW|Colby Covington|USA|4|0|s|y|0
+M|WW|Gilbert Burns|BRA|3.5|2|s|k|1
+M|MW|Khamzat Chimaev|ARE|5|1|s|n|1
+M|MW|Anderson Silva|BRA|5|3|b|k|1
+M|MW|Dricus du Plessis|ZAF|4.5|0|s|n|1
+M|MW|Israel Adesanya|NZL|4.5|4|c|k|0
+M|MW|Robert Whittaker|AUS|4.5|2|s|k|1
+M|MW|Sean Strickland|USA|4|0|s|n|0
+M|MW|Nassourdine Imavov|FRA|4|1|s|k|1
+M|MW|Reinier de Ridder|NLD|4|0|s|y|0
+M|MW|Caio Borralho|BRA|4|2|s|k|1
+M|MW|Paulo Costa|BRA|3.5|2|s|k|1
+M|LHW|Alex Pereira|BRA|5|2|s|k|0
+M|LHW|Magomed Ankalaev|RUS|4.5|1|s|k|1
+M|LHW|Jiri Prochazka|CZE|4.5|0|l|n|0
+M|LHW|Daniel Cormier|USA|4.5|4|b|k|0
+M|LHW|Jamahal Hill|USA|4|4|s|k|1
+M|LHW|Jan Blachowicz|POL|4|0|s|n|1
+M|LHW|Carlos Ulberg|NZL|4|3|s|k|0
+M|LHW|Khalil Rountree Jr.|USA|4|4|s|k|1
+M|LHW|Volkan Oezdemir|SUI|3.5|1|s|k|1
+M|HW|Tom Aspinall|ENG|5|0|s|n|1
+M|HW|Jon Jones|USA|5|4|s|k|1
+M|HW|Ciryl Gane|FRA|4.5|4|b|k|1
+M|HW|Stipe Miocic|USA|4.5|0|b|n|1
+M|HW|Alexander Volkov|RUS|4|0|s|n|0
+M|HW|Sergei Pavlovich|RUS|4|0|s|n|0
+M|HW|Jailton Almeida|BRA|4|3|b|k|1
+M|HW|Curtis Blaydes|USA|4|4|s|k|1
+M|HW|Derrick Lewis|USA|3.5|4|b|k|1
+M|HW|Marcin Tybura|POL|3|0|s|n|1
+W|SW|Zhang Weili|CHN|5|1|p|k|0
+W|SW|Joanna Jedrzejczyk|POL|4.5|0|p|y|0
+W|SW|Tatiana Suarez|USA|4.5|2|p|k|0
+W|SW|Mackenzie Dern|USA|4|0|p|y|0
+W|SW|Virna Jandiroba|BRA|4|2|p|k|0
+W|SW|Yan Xiaonan|CHN|4|1|p|k|0
+W|SW|Amanda Lemos|BRA|4|3|s|k|0
+W|SW|Jessica Andrade|BRA|4|2|s|k|0
+W|SW|Marina Rodriguez|BRA|3.5|2|p|k|0
+W|SW|Molly McCann|ENG|3|0|p|n|0
+W|FLY|Valentina Shevchenko|KGZ|5|0|p|y|0
+W|FLY|Manon Fiorot|FRA|4.5|1|p|n|0
+W|FLY|Alexa Grasso|MEX|4.5|1|p|n|0
+W|FLY|Natalia Silva|BRA|4.5|2|p|k|0
+W|FLY|Rose Namajunas|USA|4.5|0|s|n|0
+W|FLY|Erin Blanchfield|USA|4|0|p|n|0
+W|FLY|Maycee Barber|USA|4|0|p|y|0
+W|FLY|Tracy Cortez|USA|3.5|2|p|k|0
+W|BW|Amanda Nunes|BRA|5|3|p|k|0
+W|BW|Kayla Harrison|USA|5|0|p|y|0
+W|BW|Julianna Peña|USA|4.5|1|p|n|0
+W|BW|Ronda Rousey|USA|4.5|0|p|y|0
+W|BW|Raquel Pennington|USA|4|0|p|n|0
+W|BW|Ketlen Vieira|BRA|4|2|p|k|0
+W|BW|Holly Holm|USA|4|0|p|y|0
+W|BW|Irene Aldana|MEX|4|1|p|n|0
+W|BW|Norma Dumont|BRA|3.5|1|s|n|0
+W|BW|Mayra Bueno Silva|BRA|3.5|2|p|k|0
+W|BW|Miesha Tate|USA|3.5|0|p|y|0
+W|FW|Amanda Nunes|BRA|5|3|p|k|0
+W|FW|Cris Cyborg|BRA|4.5|2|p|k|0
+W|FW|Germaine de Randamie|NLD|4|3|p|k|0
+W|FW|Holly Holm|USA|4|0|p|y|0
+W|FW|Megan Anderson|AUS|3.5|0|p|y|0
+W|FW|Felicia Spencer|CAN|3.5|0|p|y|0
+`;
+
+const DIVS = {
+  M: [["FLY","Flyweight",125],["BW","Bantamweight",135],["FW","Featherweight",145],["LW","Lightweight",155],
+      ["WW","Welterweight",170],["MW","Middleweight",185],["LHW","Light Heavyweight",205],["HW","Heavyweight",265]],
+  W: [["SW","Strawweight",115],["FLY","Flyweight",125],["BW","Bantamweight",135],["FW","Featherweight",145]]
+};
+
+const ROSTER = ROSTER_TEXT.trim().split("\n").map(l => {
+  const [g, div, name, cc, st, skin, hair, hc, beard] = l.split("|");
+  return { g, div, name, cc, stars: +st, skin: +skin, hair, hc, beard: beard === "1" };
+});
+
+/* ===== FLAGS (drawn in a 90×60 box) ===== */
+const R = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+const H3 = (a, b, c) => R(0,0,90,20,a) + R(0,20,90,20,b) + R(0,40,90,20,c);
+const V3 = (a, b, c) => R(0,0,30,60,a) + R(30,0,30,60,b) + R(60,0,30,60,c);
+const C = (cx, cy, r, c, extra = "") => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" ${extra}/>`;
+function ST(cx, cy, rad, c, extra = "") {
+  const p = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (-90 + i * 36) * Math.PI / 180, rr = i % 2 ? rad * 0.4 : rad;
+    p.push((cx + rr * Math.cos(a)).toFixed(2) + "," + (cy + rr * Math.sin(a)).toFixed(2));
+  }
+  return `<polygon points="${p.join(" ")}" fill="${c}" ${extra}/>`;
+}
+const UJ = `<svg x="0" y="0" width="45" height="30" viewBox="0 0 45 30">${R(0,0,45,30,"#012169")}
+  <path d="M0,0 L45,30 M45,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L45,30 M45,0 L0,30" stroke="#C8102E" stroke-width="2"/>
+  <path d="M22.5,0 V30 M0,15 H45" stroke="#fff" stroke-width="10"/><path d="M22.5,0 V30 M0,15 H45" stroke="#C8102E" stroke-width="6"/></svg>`;
+
+const FLAGS = {
+  USA: ["United States", "#b22234", () => {
+    let s = "";
+    for (let i = 0; i < 13; i++) s += R(0, i * 60 / 13, 90, 60 / 13 + 0.1, i % 2 ? "#fff" : "#b22234");
+    s += R(0, 0, 36, 60 * 7 / 13, "#3c3b6e");
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) s += C(3.3 + c * 5.9, 3.4 + r * 6.2, 1.15, "#fff");
+    return s;
+  }],
+  BRA: ["Brazil", "#009c3b", () => R(0,0,90,60,"#009c3b") + `<polygon points="45,6 84,30 45,54 6,30" fill="#ffdf00"/>` + C(45,30,12,"#002776") + `<path d="M33.5,27 Q46,23 56.5,33" stroke="#fff" stroke-width="2.2" fill="none"/>`],
+  RUS: ["Russia", "#d52b1e", () => H3("#fff", "#0039a6", "#d52b1e")],
+  MEX: ["Mexico", "#006847", () => V3("#006847", "#fff", "#ce1126") + C(45,30,6.5,"#8c5a2b") + C(45,30,3,"#5d8a3a")],
+  ENG: ["England", "#ce1124", () => R(0,0,90,60,"#fff") + R(39,0,12,60,"#ce1124") + R(0,24,90,12,"#ce1124")],
+  IRL: ["Ireland", "#169b62", () => V3("#169b62", "#fff", "#ff883e")],
+  AUS: ["Australia", "#012169", () => R(0,0,90,60,"#012169") + UJ + ST(22.5,45,6,"#fff") + ST(67.5,13,3.2,"#fff") + ST(78,25,3.2,"#fff") + ST(58,27,3.2,"#fff") + ST(67.5,48,3.5,"#fff") + ST(72,34,1.8,"#fff")],
+  NZL: ["New Zealand", "#012169", () => R(0,0,90,60,"#012169") + UJ + [[67,13,3.6],[78,25,3.6],[58,27,3.2],[67,47,4]].map(([x,y,r]) => ST(x,y,r,"#c8102e",'stroke="#fff" stroke-width="1"')).join("")],
+  NGA: ["Nigeria", "#008751", () => V3("#008751", "#fff", "#008751")],
+  ESP: ["Spain", "#aa151b", () => R(0,0,90,15,"#aa151b") + R(0,15,90,30,"#f1bf00") + R(0,45,90,15,"#aa151b")],
+  KAZ: ["Kazakhstan", "#00afca", () => R(0,0,90,60,"#00afca") + R(5,0,4,60,"#fec50c") + C(47,26,15,"none",'stroke="#fec50c" stroke-width="4" stroke-dasharray="2 2"') + C(47,26,10,"#fec50c") + `<path d="M30,40 Q47,48 64,40 Q47,44 30,40" fill="#fec50c"/>`],
+  CHN: ["China", "#de2910", () => R(0,0,90,60,"#de2910") + ST(15,15,9,"#ffde00") + ST(30,6,3,"#ffde00") + ST(36,12,3,"#ffde00") + ST(36,21,3,"#ffde00") + ST(30,27,3,"#ffde00")],
+  POL: ["Poland", "#dc143c", () => R(0,0,90,30,"#fff") + R(0,30,90,30,"#dc143c")],
+  CAN: ["Canada", "#d52b1e", () => R(0,0,90,60,"#fff") + R(0,0,22.5,60,"#d52b1e") + R(67.5,0,22.5,60,"#d52b1e") + `<path d="M45 14 L48 21 L52 19 L50 29 L56 23 L58 26 L63 25 L61 31 L64 33 L55 40 L56 43 L47 42 L47 48 L43 48 L43 42 L34 43 L35 40 L26 33 L29 31 L27 25 L32 26 L34 23 L40 29 L38 19 L42 21 Z" fill="#d52b1e"/>`],
+  CZE: ["Czechia", "#11457e", () => R(0,0,90,30,"#fff") + R(0,30,90,30,"#d7141a") + `<polygon points="0,0 45,30 0,60" fill="#11457e"/>`],
+  KGZ: ["Kyrgyzstan", "#e8112d", () => R(0,0,90,60,"#e8112d") + C(45,30,17,"none",'stroke="#ffef00" stroke-width="5" stroke-dasharray="2.2 1.8"') + C(45,30,11,"#ffef00") + C(45,30,7.5,"#e8112d") + `<path d="M38,27 Q45,33 52,27 M38,33 Q45,27 52,33" stroke="#ffef00" stroke-width="1.6" fill="none"/>`],
+  FRA: ["France", "#0055a4", () => V3("#0055a4", "#fff", "#ef4135")],
+  GEO: ["Georgia", "#ff0000", () => R(0,0,90,60,"#fff") + R(40,0,10,60,"#f00") + R(0,25,90,10,"#f00") + [[20,12.5],[70,12.5],[20,47.5],[70,47.5]].map(([x,y]) => R(x-1.6,y-5.5,3.2,11,"#f00") + R(x-5.5,y-1.6,11,3.2,"#f00")).join("")],
+  ARM: ["Armenia", "#d90012", () => H3("#d90012", "#0033a0", "#f2a800")],
+  ZAF: ["South Africa", "#007749", () => R(0,0,90,30,"#e03c31") + R(0,30,90,30,"#001489") +
+        `<path d="M-4,-3 L36,30 L94,30 M-4,63 L36,30" stroke="#fff" stroke-width="20" fill="none"/><path d="M-4,-3 L36,30 L94,30 M-4,63 L36,30" stroke="#007749" stroke-width="12" fill="none"/>` +
+        `<polygon points="0,7 28,30 0,53" fill="#ffb612"/><polygon points="0,12 22,30 0,48" fill="#000"/>`],
+  ARE: ["United Arab Emirates", "#00732f", () => R(22,0,68,20,"#00732f") + R(22,20,68,20,"#fff") + R(22,40,68,20,"#000") + R(0,0,22,60,"#ff0000")],
+  NLD: ["Netherlands", "#ae1c28", () => H3("#ae1c28", "#fff", "#21468b")],
+  JPN: ["Japan", "#bc002d", () => R(0,0,90,60,"#fff") + C(45,30,18,"#bc002d")],
+  MMR: ["Myanmar", "#34b233", () => H3("#fecb00", "#34b233", "#ea2839") + ST(45,32,21,"#fff")],
+  ECU: ["Ecuador", "#ffdd00", () => R(0,0,90,30,"#ffdd00") + R(0,30,90,15,"#034ea2") + R(0,45,90,15,"#ed1c24") + C(45,30,7,"#8c6a2c")],
+  SUI: ["Switzerland", "#da291c", () => R(0,0,90,60,"#da291c") + R(39.5,13,11,34,"#fff") + R(28,24.5,34,11,"#fff")],
+};
+const flagSVG = cc => `<svg viewBox="0 0 90 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${FLAGS[cc][2]()}</svg>`;
+
+/* ===== 8-BIT FIGHTER SPRITE (32×48 grid, faces right) =====
+   Body parts are painted into a part map first, then each pixel is shaded from its edges
+   (light from the front-top), so overlapping limbs keep their definition. */
+const PAL = {
+  skin: [["#ffe3cc","#f2c9a8","#d9a385","#b07e63"],["#f7d2b0","#e3b08a","#c48d68","#9b6a4b"],["#e3ab7f","#c98f63","#a5704a","#7d5236"],
+         ["#bd8455","#9c6640","#7a4c2e","#5a361f"],["#8a5838","#6b4128","#4c2d1a","#331d10"]],
+  hair: { k: ["#3a302b","#1d1714","#120e0c","#080606"], n: ["#7a5232","#5c3a22","#422814","#2a190c"], y: ["#f6dd8c","#e3c46a","#bf9e45","#8f7330"],
+          r: ["#d77a46","#b4552c","#8a3d1d","#5e2812"], g: ["#c4c4c4","#9b9b9b","#767676","#555555"] },
+  red: ["#ff5a52","#d81d24","#9a1218","#650a0e"],
+  blue: ["#6b97ff","#2a5bd7","#1a3c99","#10256a"],
+  glove: ["#5a5a66","#2a2a31","#17171b","#0b0b0d"],
+  white: ["#ffffff","#ececec","#bdbdbd","#8a8a8a"]
+};
+
+function drawFighter(canvas, f, corner, u = 0) {
+  const W = 32, H = 48;
+  const part = Array.from({ length: H }, () => Array(W).fill(null));
+  const set = (id, x, y) => { if (x >= 0 && x < W && y >= 0 && y < H) part[y][x] = id; };
+  const rect = (id, x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(id, i, j); };
+  const blob = (id, x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++)
+    if (!((j === y || j === y + h - 1) && (i === x || i === x + w - 1))) set(id, i, j); };
+  const line = (id, x0, y0, x1, y1, t) => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1), o = Math.floor(t / 2);
+    for (let k = 0; k <= n; k++) rect(id, Math.round(x0 + (x1 - x0) * k / n) - o, Math.round(y0 + (y1 - y0) * k / n) - o, t, t);
+  };
+  const woman = f.g === "W", knee = u >> 1;
+
+  // far side first
+  line("legB", 13, 31 + u, 12, 38 + knee, 4); line("legB", 12, 38 + knee, 11, 43, 4); rect("legB", 7, 44, 6, 2);
+  line("armB", 10, 18 + u, 9, 23 + u, 3);
+  blob("gloveB", 19, 10 + u, 5, 5); rect("cuffB", 20, 15 + u, 3, 1);
+  // body
+  rect("torso", 10, 16 + u, 13, 4); rect("torso", 11, 20 + u, 11, 4); rect("torso", 12, 24 + u, 10, 3);
+  if (woman) { rect("top", 10, 16 + u, 13, 5); rect("torso", 15, 16 + u, 4, 1); }
+  line("legF", 19, 31 + u, 21, 37 + knee, 4); line("legF", 21, 37 + knee, 21, 43, 4); rect("legF", 19, 44, 7, 2);
+  rect("shorts", 11, 26 + u, 12, 4); rect("shorts", 10, 29 + u, 7, 4); rect("shorts", 17, 29 + u, 7, 4);
+  rect("waist", 11, 26 + u, 12, 1);
+  // head
+  rect("neck", 14, 13 + u, 5, 4);
+  blob("head", 12, 4 + u, 9, 11); set("head", 21, 9 + u); set("head", 21, 10 + u);
+  const shortHair = () => { blob("hair", 12, 3 + u, 9, 4); rect("hair", 12, 7 + u, 3, 3); };
+  if (f.hair === "s") shortHair();
+  if (f.hair === "c") { blob("hair", 11, 1 + u, 11, 6); rect("hair", 11, 7 + u, 4, 4); }
+  if (f.hair === "l") { shortHair(); rect("hair", 10, 6 + u, 4, 10); }
+  if (f.hair === "p") { shortHair(); rect("hair", 10, 6 + u, 3, 3); line("hair", 10, 9 + u, 8, 16 + u, 3); }
+  if (f.beard) { rect("beard", 15, 11 + u, 6, 3); rect("beard", 16, 14 + u, 4, 1); rect("beard", 14, 9 + u, 1, 3); }
+  // lead arm in front
+  line("armF", 19, 18 + u, 23, 23 + u, 4); line("armF", 23, 23 + u, 25, 16 + u, 3);
+  blob("gloveF", 23, 9 + u, 6, 6); rect("cuffF", 24, 15 + u, 4, 2);
+
+  const cp = PAL[corner], sk = PAL.skin[f.skin] || PAL.skin[1], hp = PAL.hair[f.hc] || PAL.hair.k;
+  const MAP = {
+    legB: [sk, 1], legF: [sk, 0], armB: [sk, 1], torso: [sk, 0], neck: [sk, 1], head: [sk, 0], armF: [sk, 0],
+    top: [cp, 0], shorts: [cp, 0], waist: [PAL.white, 0], hair: [hp, 0], beard: [hp, 0],
+    gloveB: [PAL.glove, 1], gloveF: [PAL.glove, 0], cuffB: [cp, 1], cuffF: [cp, 0]
+  };
+  const col = Array.from({ length: H }, () => Array(W).fill(null));
+  const at = (x, y) => (y >= 0 && y < H && x >= 0 && x < W ? part[y][x] : null);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const id = part[y][x]; if (!id) continue;
+    const [pal, shift] = MAP[id];
+    let t = 1;
+    if (at(x - 1, y) !== id || at(x, y + 1) !== id) t = 2;
+    else if (at(x, y - 1) !== id || at(x + 1, y) !== id) t = 0;
+    col[y][x] = pal[Math.min(3, t + shift)];
+  }
+  const px = (x, y, c) => { if (col[y]?.[x] !== undefined && col[y][x]) col[y][x] = c; };
+  // face
+  px(19, 8 + u, "#120e0c"); px(19, 9 + u, "#120e0c");
+  [18, 19, 20].forEach(x => px(x, 7 + u, f.hair === "b" ? sk[3] : hp[2]));
+  px(20, 12 + u, f.beard ? hp[3] : sk[3]);
+  px(15, 9 + u, sk[2]); px(15, 10 + u, sk[3]); px(16, 10 + u, sk[2]);
+  // torso detail
+  if (!woman) {
+    [13, 14, 15, 17, 18, 19, 20].forEach(x => px(x, 20 + u, sk[2]));
+    [22, 24].forEach(y => { px(16, y + u, sk[2]); px(17, y + u, sk[2]); px(19, y + u, sk[2]); });
+    px(14, 17 + u, sk[0]); px(19, 17 + u, sk[0]);
+  } else {
+    px(17, 24 + u, sk[3]);
+    [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21].forEach(x => px(x, 20 + u, cp[2]));
+  }
+  if (f.hair === "p") px(11, 8 + u, cp[1]);
+  // shorts + gloves
+  for (let y = 27; y <= 32; y++) px(22, y + u, PAL.white[1]);
+  px(17, 31 + u, cp[3]); px(17, 32 + u, cp[3]);
+  [24, 25, 26, 27].forEach(x => px(x, 12 + u, PAL.glove[3]));
+  px(24, 10 + u, PAL.glove[0]); px(25, 10 + u, PAL.glove[0]);
+
+  // outline
+  const out = col.map(r => r.slice());
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (!col[y][x] && (col[y - 1]?.[x] || col[y + 1]?.[x] || col[y][x - 1] || col[y][x + 1])) out[y][x] = "#0d0b0b";
+
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (out[y][x]) { ctx.fillStyle = out[y][x]; ctx.fillRect(x, y, 1, 1); }
+}
+
+/* ===== STARS ===== */
+function starPoly() {
+  // faceted 5-point star: each arm is a light and a dark triangle meeting at the centre
+  const pt = (deg, r) => [50 + r * Math.cos(deg * Math.PI / 180), 50 + r * Math.sin(deg * Math.PI / 180)];
+  const out = [], tris = [];
+  for (let k = 0; k < 5; k++) {
+    const o = pt(-90 + 72 * k, 50), l = pt(-126 + 72 * k, 21), r = pt(-54 + 72 * k, 21);
+    out.push(l, o);
+    tris.push([l, o], [o, r]);
+  }
+  return { outline: out.map(p => p.map(v => v.toFixed(2)).join(",")).join(" "), tris };
+}
+const STAR = starPoly();
+function starSVG(cls, light, dark) {
+  const f = STAR.tris.map(([a, b], i) =>
+    `<polygon points="50,52 ${a.map(v => v.toFixed(2))} ${b.map(v => v.toFixed(2))}" fill="${i % 2 ? dark : light}"/>`).join("");
+  return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${f}</svg>`;
+}
+const STAR_OFF = starSVG("off", "#5d5563", "#3b3540");
+const STAR_ON = starSVG("on", "#ffd64f", "#d79a12");
+const starHTML = fill => `<span class="fstar">${STAR_OFF}${fill ? STAR_ON.replace('class="on"', `class="on" style="--fill:${fill}%"`) : ""}</span>`;
+function starsHTML(n) {
+  let s = "";
+  for (let i = 0; i < 5; i++) s += starHTML(Math.max(0, Math.min(1, n - i)) * 100);
+  return s;
+}
+
+/* ===== STATE + HOME UI ===== */
+const state = { g: "M", div: "ANY", min: 3, max: 5 };
+try {
+  const saved = JSON.parse(localStorage.getItem("ufc6-gen") || "null");
+  if (saved && DIVS[saved.g] && saved.min) { state.g = saved.g; state.div = saved.div; state.min = saved.min; state.max = saved.max; }
+} catch (e) {}
+const save = () => { try { localStorage.setItem("ufc6-gen", JSON.stringify({ g: state.g, div: state.div, min: state.min, max: state.max })); } catch (e) {} };
+
+const divInfo = (g, key) => DIVS[g].find(d => d[0] === key);
+const matching = ({ g = state.g, div = state.div } = {}) =>
+  ROSTER.filter(f => f.g === g && (div === "ANY" || f.div === div) && f.stars >= state.min && f.stars <= state.max);
+
+function eligibleDivs(pool) {
+  const by = {};
+  pool.forEach(f => (by[f.div] ||= []).push(f));
+  return Object.entries(by).filter(([, list]) => list.length >= 2);
+}
+
+const $ = id => document.getElementById(id);
+
+function renderHome() {
+  if (state.div !== "ANY" && !divInfo(state.g, state.div)) state.div = "ANY";
+  ["M", "W"].forEach(g => $("g-" + g).setAttribute("aria-checked", String(state.g === g)));
+
+  const divOpts = [["ANY", "Any division", "ALL"], ...DIVS[state.g]];
+  $("divChips").innerHTML = divOpts.map(([key, name, lb]) =>
+    `<button type="button" role="radio" class="chip" data-div="${key}" aria-checked="${state.div === key}"${key === "ANY" ? ' aria-label="Any division"' : ""}>
+      <span class="n">${lb}</span><span class="t">${name}</span></button>`).join("");
+
+  paintPicker("Min", state.min);
+  paintPicker("Max", state.max);
+
+  const pool = matching(), elig = eligibleDivs(pool);
+  const info = $("poolInfo");
+  if (!elig.length) {
+    info.className = "warn";
+    info.innerHTML = `<b>Not enough fighters.</b> A fight needs two fighters in one division. Widen the star range or switch weight class.`;
+  } else {
+    info.className = "";
+    info.innerHTML = `<b>${pool.length} fighters</b> in the pool across <b>${elig.length}</b> division${elig.length > 1 ? "s" : ""}.`;
+  }
+  $("goBtn").disabled = !elig.length;
+  save();
+}
+
+$("setup").addEventListener("click", e => {
+  const g = e.target.closest("[data-g]"), d = e.target.closest("[data-div]");
+  if (g) { state.g = g.dataset.g; state.div = "ANY"; }
+  else if (d) state.div = d.dataset.div;
+  else return;
+  renderHome();
+  if (d) document.querySelector(`[data-div="${state.div}"]`)?.focus();
+});
+
+/* Star range pickers: click the left half of a star for .5, the right half for a whole star */
+function paintPicker(which, v) {
+  const el = $("pick" + which);
+  if (!el.children.length) el.innerHTML = Array.from({ length: 5 }, () => `<span class="cell">${starHTML(100)}</span>`).join("");
+  [...el.children].forEach((c, i) => c.querySelector(".on").style.setProperty("--fill", Math.max(0, Math.min(1, v - i)) * 100 + "%"));
+  el.setAttribute("aria-valuenow", v);
+  el.setAttribute("aria-valuetext", `${v.toFixed(1)} stars`);
+  $("val" + which).textContent = v.toFixed(1);
+}
+function setRange(which, v) {
+  v = Math.max(0.5, Math.min(5, v));
+  if (which === "Min") { state.min = v; if (state.max < v) state.max = v; }
+  else { state.max = v; if (state.min > v) state.min = v; }
+  renderHome();
+}
+function valueAt(el, e) {
+  const cells = [...el.children];
+  for (let i = 0; i < cells.length; i++) {
+    const r = cells[i].getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right) return i + (e.clientX - r.left < r.width / 2 ? 0.5 : 1);
+  }
+  return null;
+}
+["Min", "Max"].forEach(which => {
+  const el = $("pick" + which), cur = () => (which === "Min" ? state.min : state.max);
+  el.addEventListener("pointermove", e => { const v = valueAt(el, e); if (v) paintPicker(which, v); });
+  el.addEventListener("pointerleave", () => paintPicker(which, cur()));
+  el.addEventListener("click", e => { const v = valueAt(el, e); if (v) setRange(which, v); });
+  el.addEventListener("keydown", e => {
+    const step = { ArrowRight: 0.5, ArrowUp: 0.5, ArrowLeft: -0.5, ArrowDown: -0.5 }[e.key];
+    if (step) { e.preventDefault(); setRange(which, cur() + step); }
+    else if (e.key === "Home" || e.key === "End") { e.preventDefault(); setRange(which, e.key === "Home" ? 0.5 : 5); }
+  });
+});
+$("setup").addEventListener("submit", e => { e.preventDefault(); generate(); });
+
+/* ===== FIGHT SCREEN ===== */
+let current = null, lastKey = "";
+const rand = a => a[Math.floor(Math.random() * a.length)];
+
+function pickFight() {
+  const elig = eligibleDivs(matching());
+  if (!elig.length) return null;
+  // weight divisions by fighter count so deeper divisions come up more often
+  const bag = elig.flatMap(([div, list]) => list.map(() => div));
+  let a, b, tries = 0;
+  do {
+    const div = rand(bag);
+    const list = elig.find(([d]) => d === div)[1];
+    a = rand(list);
+    do { b = rand(list); } while (b === a);
+    tries++;
+  } while (tries < 12 && [a.name, b.name].sort().join("|") === lastKey);
+  lastKey = [a.name, b.name].sort().join("|");
+  return [a, b];
+}
+
+function fillSide(s, f, corner) {
+  const [cname, glow] = FLAGS[f.cc];
+  const d = divInfo(f.g, f.div);
+  $("flag" + s).innerHTML = flagSVG(f.cc);
+  $("abbr" + s).textContent = f.cc;
+  $("abbr" + s).title = cname;
+  $("side" + s).style.setProperty("--glow", glow);
+  $("div" + s).textContent = `${f.g === "W" ? "Women's " : ""}${d[1]} · ${d[2]} lb`;
+  $("name" + s).textContent = f.name;
+  $("stars" + s).innerHTML = starsHTML(f.stars);
+  $("stars" + s).setAttribute("aria-label", `${f.stars} stars`);
+  drawFighter($("sprite" + s), f, corner, 0);
+}
+
+function generate() {
+  const pair = pickFight();
+  if (!pair) return;
+  current = pair;
+  fillSide("L", pair[0], "red");
+  fillSide("R", pair[1], "blue");
+  const fight = $("fight");
+  $("home").hidden = true;
+  fight.hidden = false;
+  fight.classList.remove("in"); void fight.offsetWidth; fight.classList.add("in");
+  $("regenBtn").focus({ preventScroll: true });
+}
+function back() {
+  $("fight").hidden = true;
+  $("home").hidden = false;
+  current = null;
+  $("goBtn").focus({ preventScroll: true });
+}
+$("backBtn").addEventListener("click", back);
+$("regenBtn").addEventListener("click", generate);
+
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!$("fight").hidden) {
+    if (e.key === "Escape") { e.preventDefault(); back(); }
+    else if (e.key === "r" || e.key === "R") { e.preventDefault(); generate(); }
+  } else if (e.key === "Enter" && (e.target === document.body || e.target === $("goBtn"))) {
+    if (e.target === document.body) { e.preventDefault(); generate(); }
+  }
+});
+
+/* ===== Idle "breathing" animation + hero art ===== */
+const heroPair = [rand(ROSTER.filter(f => f.g === "M" && f.stars === 5)), rand(ROSTER.filter(f => f.g === "M" && f.stars === 5))];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const BOB = [0, 1, 2, 1];
+let frame = 0;
+function tick() {
+  const a = BOB[frame % 4], b = BOB[(frame + 2) % 4];
+  if (!$("home").hidden) { drawFighter($("heroL"), heroPair[0], "red", a); drawFighter($("heroR"), heroPair[1], "blue", b); }
+  if (current) { drawFighter($("spriteL"), current[0], "red", a); drawFighter($("spriteR"), current[1], "blue", b); }
+  frame++;
+}
+tick();
+if (!reduce) setInterval(tick, 190);
+
+renderHome();
+</script>
+</body>
+</html>
