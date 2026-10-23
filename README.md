@@ -9,7 +9,7 @@ A random fight picker for EA Sports UFC 6. Choose a roster, a weight class and a
 
 ## Features
 
-- **Men's or WMMA** rosters, with every division from strawweight (115) to heavyweight (265)
+- **193 fighters** across men's (flyweight 125 to heavyweight 265) and WMMA (strawweight 115 to bantamweight 135), including legends like Georges St-Pierre, Fedor Emelianenko and Ronda Rousey
 - **Weight class** filter, or "Any division" to pick one at random
 - **Star rating range** with MIN and MAX pickers, in half-star steps
 - **Matchup screen** with each fighter's country flag, 3-letter country code, an animated 8-bit fighter, the division and their star rating
@@ -41,7 +41,7 @@ M|LW|Charles Oliveira|BRA|4.5|2|s|k|0
 | Field | Values |
 | --- | --- |
 | gender | `M` men, `W` women |
-| division | Men: `FLY` `BW` `FW` `LW` `WW` `MW` `LHW` `HW`. Women: `SW` `FLY` `BW` `FW` |
+| division | Men: `FLY` `BW` `FW` `LW` `WW` `MW` `LHW` `HW`. Women: `SW` `FLY` `BW` |
 | country | 3-letter code with a flag in `FLAGS` (e.g. `USA`, `BRA`, `RUS`, `ENG`) |
 | stars | `0.5` to `5` in half steps |
 | skin | `0` (lightest) to `4` (darkest) |
@@ -49,7 +49,19 @@ M|LW|Charles Oliveira|BRA|4.5|2|s|k|0
 | hair colour | `k` black, `n` brown, `y` blond, `r` red, `g` grey |
 | beard | `1` or `0` |
 
-The star ratings are estimates, so adjust them to match the game. To add a new country, add an entry to `FLAGS`: a name, a glow colour and a small SVG drawn in a 90×60 box.
+A fighter can appear in more than one division (Jon Jones and Alex Pereira do). To add a new country, add an entry to `FLAGS`: a name, a glow colour and a small SVG drawn in a 90×60 box.
+
+## Where the roster comes from
+
+EA hasn't published one full roster list, so the roster combines:
+
+- [EA's UFC 6 ratings hub](https://www.ea.com/games/ufc/ufc-6/ufc-6-ratings-hub) division pages
+- Launch roster lists from [PixelNitro](https://pixelnitro.com/ea-sports-ufc-6-roster-all-confirmed-fighters-new-additions-and-legends-at-launch/) and [Heavy](https://heavy.com/sports/ufc/ea-sports-ufc-6-fighter-roster/)
+- Post-launch additions such as Tank Abbott, Uros Medic, Kevin Vallejos, Josh Hokit, Kyoji Horiguchi, Quillan Salkilld, Lone'er Kavanagh, Valter Walker and Aaron Pico ([Forbes](https://www.forbes.com/sites/brianmazique/2026/08/05/ea-ufc-6-update-ufc-330-content-2-new-fighters-and-gameplay-changes/), [Heavy](https://heavy.com/sports/ufc/new-fighters-ea-sports-ufc-6/))
+
+A few current UFC fighters who didn't show up in those sources (for example Joshua Van, Song Yadong and Paddy Pimblett) are kept in as well.
+
+**Star ratings:** only the twelve 5-star fighters are confirmed by EA ([Bleacher Report](https://bleacherreport.com/articles/25430220-ufc-6-reveals-5-star-fighter-ratings-jon-jones-conor-mcgregor-more-ahead-release-date)): Jon Jones, Conor McGregor, Amanda Nunes, Israel Adesanya, Alex Pereira, Alexander Volkanovski, Max Holloway, Ilia Topuria, Zhang Weili, Valentina Shevchenko, Islam Makhachev and Alexandre Pantoja. Every other rating is an estimate. If you know a fighter's real in-game rating, a pull request is welcome.
 
 ## Notes
 
