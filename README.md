@@ -2,7 +2,7 @@
 
 A random fight picker for EA Sports UFC 6. Choose a roster, a weight class and a star range, and it books a red corner vs blue corner matchup between two fighters from the same division.
 
-**Play it:** https://daiyannawar.github.io/ufc6-match-generator/
+**Test it out!** https://daiyannawar.github.io/ufc6-match-generator/
 
 ![Main page](docs/home.png)
 ![Matchup screen](docs/matchup.png)
