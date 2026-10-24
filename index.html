@@ -642,7 +642,7 @@ const DIVS = {
 
 const ROSTER = ROSTER_TEXT.trim().split("\n").map(l => {
   const [g, div, name, cc, st, skin, hair, hc, beard] = l.split("|");
-  return { g, div, name, cc, stars: +st, skin: +skin, hair, hc, beard: beard === "1" };
+  return { g, div, name, cc, stars: +st, skin: +skin, hair, hc, beard: +beard || 0 };
 });
 
 /* ===== FLAGS (drawn in a 90×60 box) ===== */
@@ -781,7 +781,11 @@ function drawFighter(canvas, f, corner, u = 0) {
     o: () => { blob("hair", 11, 3 + u, 10, 4); rect("hair", 11, 7 + u, 4, 6); }, // bob
     b: () => {}                                                                   // bald
   }[f.hair] || shortHair)();
-  if (f.beard) { rect("beard", 15, 11 + u, 6, 3); rect("beard", 16, 14 + u, 4, 1); rect("beard", 14, 9 + u, 1, 3); }
+  // beard: 1 full, 2 goatee, 3 moustache, 4 stubble
+  if (f.beard === 1 || f.beard === 4) { const id = f.beard === 1 ? "beard" : "buzz";
+    rect(id, 15, 11 + u, 6, 3); rect(id, 16, 14 + u, 4, 1); rect(id, 14, 9 + u, 1, 3); }
+  if (f.beard === 2) { rect("beard", 18, 11 + u, 3, 1); rect("beard", 17, 12 + u, 4, 2); rect("beard", 18, 14 + u, 2, 1); }
+  if (f.beard === 3) rect("beard", 18, 11 + u, 4, 1);
   // lead arm in front
   line("armF", 19, 18 + u, 23, 23 + u, 4); line("armF", 23, 23 + u, 25, 16 + u, 3);
   blob("gloveF", 23, 9 + u, 6, 6); rect("cuffF", 24, 15 + u, 4, 2);
@@ -807,7 +811,7 @@ function drawFighter(canvas, f, corner, u = 0) {
   // face
   px(19, 8 + u, "#120e0c"); px(19, 9 + u, "#120e0c");
   [18, 19, 20].forEach(x => px(x, 7 + u, f.hair === "b" ? sk[3] : hp[2]));
-  px(20, 12 + u, f.beard ? hp[3] : sk[3]);
+  px(20, 12 + u, f.beard === 1 || f.beard === 2 ? hp[3] : sk[3]);
   px(15, 9 + u, sk[2]); px(15, 10 + u, sk[3]); px(16, 10 + u, sk[2]);
   // torso detail
   if (!woman) {
