@@ -34,8 +34,8 @@ An internet connection is only needed for the Google Fonts (Outfit and Saira). W
 Fighters live in the `ROSTER_TEXT` block near the top of the `<script>` in `index.html`. There's one fighter per line:
 
 ```
-gender | division | name | country | stars | skin | hair | hair colour | beard
-M|LW|Charles Oliveira|BRA|4.5|2|s|k|0
+gender | division | name | country | stars | skin | hair | hair colour | beard | shorts
+M|WW|Islam Makhachev|RUS|5|1|z|k|1|champ
 ```
 
 | Field | Values |
@@ -45,9 +45,10 @@ M|LW|Charles Oliveira|BRA|4.5|2|s|k|0
 | country | 3-letter code with a flag in `FLAGS` (e.g. `USA`, `BRA`, `RUS`, `ENG`) |
 | stars | `0.5` to `5` in half steps |
 | skin | `0` (lightest) to `4` (darkest) |
-| hair | `b` bald, `s` short, `c` curly, `l` long, `p` ponytail |
-| hair colour | `k` black, `n` brown, `y` blond, `r` red, `g` grey |
-| beard | `1` or `0` |
+| hair | `b` bald, `z` buzz, `s` short, `f` fade, `q` slicked quiff, `t` spiky, `m` mohawk, `c` curly, `d` dreads, `u` man bun, `l` long, `p` ponytail, `x` braid, `o` bob |
+| hair colour | `k` black, `n` brown, `y` blond, `r` red, `g` grey, `v` teal dye, `w` platinum |
+| beard | `0` none, `1` full, `2` goatee, `3` moustache, `4` stubble |
+| shorts (optional) | `champ` black with gold trim, `black`, `hawaii` floral, `flag` country colours (see `FLAG_SHORTS`). Leave it off for plain corner colours |
 
 A fighter can appear in more than one division (Jon Jones and Alex Pereira do). To add a new country, add an entry to `FLAGS`: a name, a glow colour and a small SVG drawn in a 90×60 box.
 
