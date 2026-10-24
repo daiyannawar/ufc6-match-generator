@@ -439,7 +439,7 @@ legend small { color: var(--mute); letter-spacing: 0.06em; font-weight: 500; tex
 /* ===== ROSTER =====
    gender | division | name | country | stars | skin (0 light – 4 dark) | hair (b bald, z buzz, s short, f fade, q quiff, t spiky, m mohawk, c curly, d dreads, u bun, l long, p ponytail, x braid, o bob)
    | hair colour (k black, n brown, y blond, r red, g grey, v teal dye, w platinum) | beard (0 none, 1 full, 2 goatee, 3 moustache, 4 stubble)
-   | shorts, optional (champ, black, hawaii, flag) */
+   | shorts, optional (champ, black, white, camo, hawaii, flag) */
 const ROSTER_TEXT = `
 M|FLY|Alexandre Pantoja|BRA|5|2|f|k|0|flag
 M|FLY|Demetrious Johnson|USA|4.5|4|z|k|0
@@ -745,13 +745,18 @@ const FLAG_SHORTS = {   // body, side panel, trim
   CHN: ["#de2910", "#ffde00", "#ffde00"], KGZ: ["#e8112d", "#ffef00", "#ffef00"], ZAF: ["#007749", "#ffb612", "#000000"],
   CAN: ["#d52b1e", "#ffffff", "#ffffff"], MEX: ["#006847", "#ffffff", "#ce1126"], ESP: ["#aa151b", "#f1bf00", "#f1bf00"],
   RUS: ["#0039a6", "#ffffff", "#d52b1e"], USA: ["#1f2a5c", "#ffffff", "#b22234"], AUS: ["#00843d", "#ffcd00", "#ffcd00"],
-  NZL: ["#111111", "#ffffff", "#ffffff"], ENG: ["#ffffff", "#ce1124", "#ce1124"], POL: ["#ffffff", "#dc143c", "#dc143c"]
+  NZL: ["#111111", "#ffffff", "#ffffff"], ENG: ["#ffffff", "#ce1124", "#ce1124"], POL: ["#ffffff", "#dc143c", "#dc143c"],
+  ITA: ["#009246", "#ffffff", "#ce2b37"], SWE: ["#006aa7", "#fecc00", "#fecc00"], AUT: ["#ed2939", "#ffffff", "#ffffff"],
+  UKR: ["#0057b7", "#ffd700", "#ffd700"], JPN: ["#ffffff", "#bc002d", "#bc002d"], FRA: ["#0055a4", "#ffffff", "#ef4135"],
+  ARM: ["#d90012", "#0033a0", "#f2a800"], NGA: ["#008751", "#ffffff", "#ffffff"], KAZ: ["#00afca", "#fec50c", "#fec50c"]
 };
 function shortsKit(f, cp) {
   const gold = ramp("#e9b949"), black = ramp("#1c1c21");
   switch (f.shorts) {
     case "champ": return { body: black, waist: gold, panel: null, stripe: gold[1], hem: gold[2] };  // gold-trimmed title kit
     case "black": return { body: black, waist: cp, panel: null, stripe: cp[1] };
+    case "white": return { body: ramp("#ececec"), waist: cp, panel: null, stripe: cp[1] };
+    case "camo": return { body: ramp("#5b6b3a"), waist: ramp("#3d4a26"), panel: null, stripe: "#3d4a26", camo: true };
     case "hawaii": return { body: ramp("#14857a"), waist: PAL.white, panel: null, stripe: "#ffffff", flowers: true };
     case "flag": { const c = FLAG_SHORTS[f.cc]; if (c) return { body: ramp(c[0]), waist: PAL.white, panel: c[1], stripe: c[2] }; }
   }
@@ -854,6 +859,8 @@ function drawFighter(canvas, f, corner, u = 0) {
   if (kit.hem) for (let x = 10; x <= 23; x++) px(x, 32 + u, kit.hem);
   if (kit.flowers) [[13, 28], [18, 31], [21, 28], [12, 31], [16, 28]].forEach(([x, y]) => {
     [[0, -1], [-1, 0], [1, 0], [0, 1]].forEach(([dx, dy]) => px(x + dx, y + dy + u, "#ff7eb3")); px(x, y + u, "#ffe066"); });
+  if (kit.camo) [[12, 28, "#3d4a26"], [13, 28, "#3d4a26"], [16, 30, "#8a8f5a"], [17, 30, "#8a8f5a"], [20, 28, "#3d4a26"],
+    [11, 31, "#8a8f5a"], [14, 32, "#3d4a26"], [21, 31, "#8a8f5a"], [22, 31, "#8a8f5a"], [18, 27, "#8a8f5a"]].forEach(([x, y, c]) => px(x, y + u, c));
   px(17, 31 + u, kit.body[3]); px(17, 32 + u, kit.body[3]);
   [24, 25, 26, 27].forEach(x => px(x, 12 + u, PAL.glove[3]));
   px(24, 10 + u, PAL.glove[0]); px(25, 10 + u, PAL.glove[0]);
