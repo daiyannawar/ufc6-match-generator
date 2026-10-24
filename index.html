@@ -792,7 +792,7 @@ function drawFighter(canvas, f, corner, u = 0) {
     f: () => { buzzCap(); blob("hair", 12, 2 + u, 9, 3); },                       // fade: short top, shaved sides
     q: () => { blob("hair", 12, 2 + u, 10, 4); set("hair", 22, 4 + u); rect("hair", 12, 6 + u, 2, 3); }, // slicked quiff
     t: () => { shortHair(); [13, 15, 17, 19].forEach(x => set("hair", x, 2 + u)); [14, 18].forEach(x => set("hair", x, 1 + u)); }, // spiky
-    m: () => { buzzCap(); rect("hair", 12, 1 + u, 8, 3); },                       // mohawk
+    m: () => { buzzCap(); rect("hair", 13, 2 + u, 7, 2); rect("hair", 14, 1 + u, 4, 1); }, // mohawk
     c: () => { blob("hair", 11, 1 + u, 11, 6); rect("hair", 11, 7 + u, 4, 4); }, // afro / curls
     d: () => { shortHair(); rect("hair", 10, 6 + u, 2, 10); rect("hair", 12, 9 + u, 2, 6); }, // dreads
     u: () => { shortHair(); blob("hair", 9, 1 + u, 5, 4); },                      // man bun / top knot
